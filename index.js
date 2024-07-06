@@ -84,9 +84,12 @@ app.post('/download', (req, res) => {
         'url': inputUrl
     };
 
+    console.log('Request payload:', payload); // Log request payload for debugging
+
     axios.post(apiUrl, payload, { headers: headers })
         .then(response => {
             if (response.status === 200) {
+                console.log('Response data:', response.data); // Log response data for debugging
                 const data = response.data;
                 let result = `
                     <!DOCTYPE html>
@@ -117,10 +120,13 @@ app.post('/download', (req, res) => {
                     </html>`;
                 res.send(result);
             } else {
+                console.log('Failed with status code:', response.status); // Log failed status code
                 res.send(`Failed with status code: ${response.status}`);
             }
         })
         .catch(error => {
+            console.error('Error:', error.message); // Log error message
+            console.error('Error response data:', error.response ? error.response.data : 'No response data'); // Log full error for debugging
             res.send(`Error: ${error.message}`);
         });
 });
