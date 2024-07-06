@@ -4,7 +4,7 @@ FROM node:14
 # Buat direktori kerja di dalam container
 WORKDIR /usr/src/app
 
-# Install dependensi yang dibutuhkan untuk Puppeteer
+# Install dependensi yang dibutuhkan untuk Puppeteer dan aplikasi Node.js
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
