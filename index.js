@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const puppeteer = require('puppeteer');
+const axios = require('axios');
 const app = express();
 const port = 3000;
 
@@ -71,67 +71,58 @@ app.get('/', (req, res) => {
     `);
 });
 
-app.post('/download', async (req, res) => {
+app.post('/download', (req, res) => {
     const inputUrl = req.body.url;
+    const apiUrl = 'https://teradownloader.com/api/application';
+    const headers = {
+        'key': 'cmXUOel6tUs5gi2JO7snDtcDRWC7iaBz',
+        'content-type': 'application/json; charset=utf-8',
+        'accept-encoding': 'gzip',
+        'user-agent': 'okhttp/5.0.0-alpha.10'
+    };
+    const payload = {
+        'url': inputUrl
+    };
 
-    try {
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.goto('https://teradownloader.com/api/application', { waitUntil: 'networkidle2' });
-
-        await page.evaluate((url) => {
-            document.querySelector('input[name="url"]').value = url;
-            document.querySelector('form').submit();
-        }, inputUrl);
-
-        await page.waitForSelector('.result');
-        const data = await page.evaluate(() => {
-            const results = [];
-            document.querySelectorAll('.result-item').forEach(item => {
-                results.push({
-                    server_filename: item.querySelector('.filename').innerText,
-                    dlink: item.querySelector('.download-link').href
+    axios.post(apiUrl, payload, { headers: headers })
+        .then(response => {
+            if (response.status === 200) {
+                const data = response.data;
+                let result = `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Download Links</title>
+                        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+                        <style>
+                            body {
+                                background-color: #ffffff;
+                                color: #000000;
+                                margin: 0;
+                                padding: 20px;
+                                box-sizing: border-box;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Download Links</h1>
+                        <ul class="list-group">`;
+                data.forEach(item => {
+                    result += `<li class="list-group-item">File Name: ${item.server_filename}<br>Download link: <a href="${item.dlink}" class="btn btn-link">${item.dlink}</a></li>`;
                 });
-            });
-            return results;
+                result += `</ul>
+                    </body>
+                    </html>`;
+                res.send(result);
+            } else {
+                res.send(`Failed with status code: ${response.status}`);
+            }
+        })
+        .catch(error => {
+            res.send(`Error: ${error.message}`);
         });
-
-        await browser.close();
-
-        let result = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Download Links</title>
-                <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-                <style>
-                    body {
-                        background-color: #ffffff;
-                        color: #000000;
-                        margin: 0;
-                        padding: 20px;
-                        box-sizing: border-box;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Download Links</h1>
-                <ul class="list-group">`;
-
-        data.forEach(item => {
-            result += `<li class="list-group-item">File Name: ${item.server_filename}<br>Download link: <a href="${item.dlink}" class="btn btn-link">${item.dlink}</a></li>`;
-        });
-
-        result += `</ul>
-            </body>
-            </html>`;
-        res.send(result);
-    } catch (error) {
-        console.error('Error:', error.message);
-        res.send(`Error: ${error.message}`);
-    }
 });
 
 app.listen(port, () => {
